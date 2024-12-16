@@ -5,9 +5,10 @@ function RegistrationForm() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    admsnNo: "",
+    admissionNo: "",
     department: "",
-    sem: "",
+    semester: "",
+    macAddress: "",
   });
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -19,18 +20,21 @@ function RegistrationForm() {
 
     console.log(formData);
     try {
-      await axios.post("/api/register", formData);
-      setHospital({
+      const response = await axios.post("/api/register", formData);
+      setFormData({
         name: "",
         email: "",
-        admsnNo: "",
+        admissionNo: "",
         department: "",
-        sem: "",
+        semester: "",
+        macAddress: "",
       });
+      alert(response.data.message)
+      // console.log(response.data.message);
     } catch (err) {
-      setError(
-        err.response?.data?.message || "Registration failed. Please try again."
-      );
+      console.error("Error:", err);
+      console.log("Error response:", err.response);
+      console.log("Error message:", err.message);
     }
   };
 
@@ -73,8 +77,8 @@ function RegistrationForm() {
             </label>
             <input
               type="text"
-              name="admsnNo"
-              value={formData.admsnNo}
+              name="admissionNo"
+              value={formData.admissionNo}
               onChange={handleChange}
               required
               className="w-full px-4 py-2 mt-1 text-gray-700 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -98,7 +102,7 @@ function RegistrationForm() {
             <label className="block text-sm font-medium text-gray-700">
               Semester
             </label>
-            <select name="sem" onChange={handleChange} className="w-full px-4 py-2 mt-1 text-gray-700 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+            <select name="semester" onChange={handleChange} className="w-full px-4 py-2 mt-1 text-gray-700 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
               <option>Select Semester</option>
               <option>1</option>
               <option>2</option>
@@ -107,6 +111,12 @@ function RegistrationForm() {
               <option>5</option>
               <option>6</option>
             </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              MAC Address
+            </label>
+            <input name="macAddress" onChange={handleChange} value={formData.macAddress} className="w-full px-4 py-2 mt-1 text-gray-700 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
           </div>
           <button
             type="submit"

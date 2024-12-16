@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
 
+const mongoose = require('mongoose');
 // User schema to store registration details
 const userSchema = new mongoose.Schema({
     name: {
