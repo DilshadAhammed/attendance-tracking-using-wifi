@@ -1,121 +1,96 @@
-const express = require("express");
+const express = require('express');
+const mongoose = require('mongoose');
 const cors = require('cors');
-const dotenv = require('dotenv');
-const mongoose = require("mongoose");
-
-dotenv.config();
-
-const User = require("./model/userModel")
-const Attendance = require("./model/attendenceModel")
+require('dotenv').config();
 
 const app = express();
-
-
-// Middleware to parse JSON and form data
-app.use(cors());
-app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(cors({ origin: '*' }));
 
-
-// MongoDB setup
+// MongoDB Connection
 mongoose.connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
 .then(() => console.log("Connected to MongoDB"))
 .catch((error) => console.error("Could not connect to MongoDB:", error));
 
-
-
-// Capture MAC address and handle registration
-app.post("/api/register", async (req, res) => {
-  const { name, email, admissionNo, department, semester, macAddress } = req.body;
-  // const macAddress = getMacAddressFromRequest(req); // Capture MAC address from the request headers
-
-  try {
-    // Check if the device is already registered
-    const existingUser = await User.findOne({ macAddress });
-
-    if (existingUser) {
-      // Log attendance if the device is already registered
-      console.log("already");
-      
-      await logAttendance(macAddress, admissionNo, "Checked In");    
-      return res
-        .status(200)
-        .json({message: "Device already registered! Attendance has been logged."});
-    }
-
-    // Save the new user to the database
-    const newUser = new User({ name, email, admissionNo, department, semester, macAddress });
-    await newUser.save();
-
-    // Log attendance for new device
-    await logAttendance(macAddress, admissionNo, "Registered");
-    return res.status(201).json({message: "Registration successful!"});
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("Error during registration.");
-  }
+// Student Schema
+const studentSchema = new mongoose.Schema({
+  macAddress: { type: String, required: true, unique: true },
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  admissionNo: { type: String, required: true, unique: true },
+  department: { type: String, required: true },
+  semester: { type: Number, required: true },
+  registeredAt: { type: Date, default: Date.now }
 });
 
-// Endpoint to fetch attendance records
-app.get("/api/attendance", async (req, res) => {
-  const { date } = req.query;
+// Attendance Schema
+const attendanceSchema = new mongoose.Schema({
+  student: { type: mongoose.Schema.Types.ObjectId, ref: 'Student' },
+  macAddress: { type: String, required: true },
+  timestamp: { type: Date, default: Date.now }
+});
 
-  if (!date) {
-    return res
-      .status(400)
-      .json({ message: " Date is required." });
-  }
+const Student = mongoose.model('Student', studentSchema);
+const Attendance = mongoose.model('Attendance', attendanceSchema);
 
+// API Endpoints
+app.post('/api/register', async (req, res) => {
   try {
-    // Convert date string to start and end timestamps for the day
-    const startOfDay = new Date(`${date}T00:00:00Z`);
-    const endOfDay = new Date(`${date}T23:59:59Z`);
-
-    // Fetch attendance within the specified range
-    const attendanceRecords = await Attendance.find({
-      timestamp: { $gte: startOfDay, $lte: endOfDay },
+    const { mac, name, email, admissionNo, department, semester } = req.body;
+    console.log("hi");
+    
+    const newStudent = new Student({
+      macAddress: mac,
+      name,
+      email,
+      admissionNo,
+      department,
+      semester: parseInt(semester)
     });
 
-    if (!attendanceRecords || attendanceRecords.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No attendance records found." });
-    }
+    await newStudent.save();
+    
+    // Log initial attendance
+    await Attendance.create({
+      macAddress: mac,
+      student: newStudent._id
+    });
 
-    return res.status(200).json({ attendance: attendanceRecords });
+    res.status(201).send("Registration successful");
   } catch (error) {
-    console.error("Error fetching attendance:", error);
-    res.status(500).json({ message: "Error fetching attendance records." });
+    res.status(400).send(error.message);
   }
 });
 
-// Function to capture MAC address from the request
-// function getMacAddressFromRequest(req) {
-//   // In a real scenario, you could capture the MAC address from headers or through a captive portal method
-//   // Here, we simulate it for demonstration purposes
-//   const macAddress = req.headers["x-mac-address"]; // Fallback MAC address (example)
-//   return macAddress;
-// }
-
-// Function to log attendance
-async function logAttendance(macAddress, admissionNo, status) {
-  const attendance = new Attendance({ admissionNo, macAddress, status });
-  await attendance.save();
-  console.log(
-    `Attendance logged for MAC address: ${macAddress} with status: ${status}`
-  );
-  return;
-}
-
-// Serve a thank-you page after successful registration
-app.get("/thank-you", (req, res) => {
-  res.send("<h1>Thank you for registering!</h1>");
+app.get('/api/check-mac', async (req, res) => {
+  try {
+    const student = await Student.findOne({ macAddress: req.query.mac });
+    res.send(!!student);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
 });
 
-// Start the server
-app.listen(process.env.PORT || 5000, () => {
-  console.log(`Captive portal server running on http://localhost:${process.env.PORT}`);
+app.post('/api/attendance', async (req, res) => {
+  try {
+    const { mac } = req.body;
+    const student = await Student.findOne({ macAddress: mac });
+    
+    if (!student) return res.status(404).send("Student not found");
+    
+    await Attendance.create({
+      macAddress: mac,
+      student: student._id
+    });
+
+    res.send("Attendance logged");
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
 });
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

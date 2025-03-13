@@ -1,7 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import axios from "axios";
 
 function RegistrationForm() {
+  const [searchParams] = useSearchParams();
+  const [macAddress, setMacAddress] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -10,10 +13,19 @@ function RegistrationForm() {
     semester: "",
     macAddress: "",
   });
+
+  useEffect(() => {
+    const queryParams = new URLSearchParams(window.location.search);
+    const mac = queryParams.get('mac');
+    if (mac) {
+      setMacAddress(mac);
+      setFormData((prev) => ({ ...prev, macAddress: mac }));
+    }
+  }, []);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
-
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,7 +41,7 @@ function RegistrationForm() {
         semester: "",
         macAddress: "",
       });
-      alert(response.data.message)
+      alert(response.data.message);
       // console.log(response.data.message);
     } catch (err) {
       console.error("Error:", err);
@@ -40,7 +52,7 @@ function RegistrationForm() {
 
   return (
     <div className="h-screen bg-gray-800 bg-opacity-50 flex items-center justify-center">
-      <div className="bg-white rounded-lg shadow-lg p-6 w-1/2 relative">
+      <div className="bg-white rounded-lg shadow-lg p-6 container relative">
         <h2 className="text-lg font-bold mb-4">Device Registration</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -88,21 +100,31 @@ function RegistrationForm() {
             <label className="block text-sm font-medium text-gray-700">
               Department
             </label>
-            <select name="department" onChange={handleChange} className="w-full px-4 py-2 mt-1 text-gray-700 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-              <option >Select Department</option>
-              <option >Civil</option>
-              <option >Mechanical</option>
-              <option >Electrical & Electronics</option>
-              <option >Electronics</option>
-              <option >Auto Mobile</option>
-              <option >Computer</option>
+            <select
+              name="department"
+              onChange={handleChange}
+              className="w-full px-4 py-2 mt-1 text-gray-700 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            >
+              <option>Select Department</option>
+              <option>Civil</option>
+              <option>Mechanical</option>
+              <option>Electrical & Electronics</option>
+              <option>Electronics</option>
+              <option>Auto Mobile</option>
+              <option>Computer</option>
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">
               Semester
             </label>
-            <select name="semester" onChange={handleChange} className="w-full px-4 py-2 mt-1 text-gray-700 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+            <select
+              name="semester"
+              onChange={handleChange}
+              className="w-full px-4 py-2 mt-1 text-gray-700 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            >
               <option>Select Semester</option>
               <option>1</option>
               <option>2</option>
@@ -113,10 +135,12 @@ function RegistrationForm() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              MAC Address
-            </label>
-            <input name="macAddress" onChange={handleChange} value={formData.macAddress} className="w-full px-4 py-2 mt-1 text-gray-700 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+            <input
+              type="hidden"
+              name="macAddress"
+              value={formData.macAddress}
+              onChange={handleChange}
+            />
           </div>
           <button
             type="submit"
