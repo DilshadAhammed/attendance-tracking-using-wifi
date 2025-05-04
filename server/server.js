@@ -40,7 +40,7 @@ const Attendance = mongoose.model('Attendance', attendanceSchema);
 app.post('/api/register', async (req, res) => {
   try {
     const { mac, name, email, admissionNo, department, semester } = req.body;
-    console.log("hi");
+    console.log(mac);
     
     const newStudent = new Student({
       macAddress: mac,
@@ -54,11 +54,12 @@ app.post('/api/register', async (req, res) => {
     await newStudent.save();
     
     // Log initial attendance
-    await Attendance.create({
+    const result = await Attendance.create({
       macAddress: mac,
       student: newStudent._id
     });
-
+    console.log(result)
+    
     res.status(201).send("Registration successful");
   } catch (error) {
     res.status(400).send(error.message);
